@@ -1,0 +1,105 @@
+<div id="uploadSection" class="upload-page">
+  <div class="step-cards">
+    <div class="step-card step-card-upload" id="uploadCard">
+      <div class="step-card-inner">
+        <div class="step-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+        </div>
+        <h3>1. Excel faylni yuklang</h3>
+        <p>.xlsx yoki .xls formatida</p>
+        <input type="file" id="fileInput" name="excel" accept=".xlsx,.xls" hidden>
+        <button type="button" id="selectBtn" class="btn btn-primary btn-block">Fayl tanlash</button>
+        <div id="uploadStatus" class="upload-status"></div>
+      </div>
+    </div>
+
+    <div class="step-card step-card-mapping" id="mappingCard" hidden>
+      <div class="step-card-inner">
+        <div class="step-icon step-icon-mapping">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+        </div>
+        <h3>2. Excel ustunlarini bog'lang</h3>
+        <p class="mapping-hint">Har bir maydon uchun ustunni tanlang</p>
+        <form id="mappingForm" class="mapping-form">
+          <div class="mapping-grid">
+            <div class="mapping-row">
+              <label for="mapNomi">Dori nomi</label>
+              <select id="mapNomi" name="nomi"></select>
+            </div>
+            <div class="mapping-row">
+              <label for="mapZavod">Исполнитель</label>
+              <select id="mapZavod" name="zavod"></select>
+            </div>
+            <div class="mapping-row">
+              <label for="mapNarx">Kelgan narx</label>
+              <select id="mapNarx" name="narx"></select>
+            </div>
+            <div class="mapping-row">
+              <label for="mapNds">NDS summa</label>
+              <select id="mapNds" name="nds"></select>
+            </div>
+            <div class="mapping-row">
+              <label for="mapSoni">Soni</label>
+              <select id="mapSoni" name="soni"></select>
+            </div>
+            <div class="mapping-row">
+              <label for="mapMuddati">Muddati</label>
+              <select id="mapMuddati" name="muddati"></select>
+            </div>
+          </div>
+          <p class="mapping-note">Kelgan narx kiritilsa — qiymat o'zgartirilmaydi. NDS bo'sh qoldirilsa: 1000×12%=120, 1000+120=1120.</p>
+        </form>
+        <div class="mapping-actions">
+          <button type="button" id="mappingCancelBtn" class="btn btn-ghost">Bekor</button>
+          <button type="button" id="mappingSubmitBtn" class="btn btn-primary">Davom etish →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="pricingSection" class="pricing-page" hidden>
+  <div class="pricing-toolbar">
+    <div class="percent-buttons">
+      <span class="toolbar-label">Markup:</span>
+      <button type="button" class="btn-percent active" data-percent="10">10%</button>
+      <button type="button" class="btn-percent" data-percent="15">15%</button>
+      <button type="button" class="btn-percent" data-percent="20">20%</button>
+    </div>
+    <div class="toolbar-actions">
+      <span class="progress-text" id="progressText">0 / 0</span>
+      <button type="button" id="applyAllBtn" class="btn btn-secondary">Barchasiga qo'llash</button>
+      <button type="button" id="exportBtn" class="btn btn-success">Excel yuklab olish</button>
+      <button type="button" id="newFileBtn" class="btn btn-ghost">Yangi fayl</button>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table class="pricing-table">
+      <thead>
+        <tr>
+          <th class="col-no">№</th>
+          <th class="col-nomi">Наименование</th>
+          <th class="col-zavod">Исполнитель</th>
+          <th class="col-soni">Soni</th>
+          <th class="col-muddati">Muddati</th>
+          <th class="col-kelgan">Kelgan (bez NDS)</th>
+          <th class="col-nds">NDS 12%</th>
+          <th class="col-kelgan-jami">Kelgan jami</th>
+          <th class="col-sizning">Sizning narx</th>
+          <th class="col-foiz">%</th>
+        </tr>
+      </thead>
+      <tbody id="pricingBody"></tbody>
+    </table>
+  </div>
+</div>
