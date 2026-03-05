@@ -44,6 +44,10 @@
               <select id="mapNarx" name="narx"></select>
             </div>
             <div class="mapping-row">
+              <label for="mapPrihod">Prihod summa (s NDS)</label>
+              <select id="mapPrihod" name="prihod"></select>
+            </div>
+            <div class="mapping-row">
               <label for="mapNds">NDS summa</label>
               <select id="mapNds" name="nds"></select>
             </div>
@@ -83,23 +87,5 @@
     </div>
   </div>
 
-  <div class="table-wrap">
-    <table class="pricing-table">
-      <thead>
-        <tr>
-          <th class="col-no">№</th>
-          <th class="col-nomi">Наименование</th>
-          <th class="col-zavod">Исполнитель</th>
-          <th class="col-soni">Soni</th>
-          <th class="col-muddati">Muddati</th>
-          <th class="col-kelgan">Kelgan (bez NDS)</th>
-          <th class="col-nds">NDS 12%</th>
-          <th class="col-kelgan-jami">Kelgan jami</th>
-          <th class="col-sizning">Sizning narx</th>
-          <th class="col-foiz">%</th>
-        </tr>
-      </thead>
-      <tbody id="pricingBody"></tbody>
-    </table>
-  </div>
+  <div class="product-cards-grid" id="pricingBody"></div>
 </div>

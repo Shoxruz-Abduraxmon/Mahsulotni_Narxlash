@@ -14,5 +14,15 @@
     "xlsx": "^0.18.5",
     "exceljs": "^4.4.0",
     "uuid": "^9.0.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Shoxruz-Abduraxmon/Mahsulotni_Narxlash.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Shoxruz-Abduraxmon/Mahsulotni_Narxlash/issues"
+  },
+  "homepage": "https://github.com/Shoxruz-Abduraxmon/Mahsulotni_Narxlash#readme"
 }

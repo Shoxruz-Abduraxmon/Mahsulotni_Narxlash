@@ -104,38 +104,107 @@
     localStorage.removeItem(STORAGE_KEY);
   }
 
+  function hasValue(val) {
+    if (val == null) return false;
+    if (typeof val === 'string') return String(val).trim() !== '';
+    if (typeof val === 'number') return !isNaN(val);
+    return true;
+  }
+
+  function buildMetaRows(p) {
+    const rows = [];
+    if (hasValue(p.kelganNarx)) {
+      rows.push({ label: 'Kelgan narx', value: formatNumber(p.kelganNarx), type: 'number' });
+    }
+    if (hasValue(p.soni)) {
+      rows.push({ label: 'Soni', value: p.soni, type: 'number' });
+    }
+    if (hasValue(p.ndsSumma)) {
+      rows.push({ label: 'NDS 12%', value: formatNumber(p.ndsSumma), type: 'number' });
+    }
+    return rows;
+  }
+
   function renderTable(products) {
     productsCache = products;
-    const tbody = document.getElementById('pricingBody');
-    if (!tbody) return;
+    const grid = document.getElementById('pricingBody');
+    if (!grid) return;
 
-    tbody.innerHTML = products.map((p, i) => {
+    grid.innerHTML = products.map((p, i) => {
       const kelganJami = p.kelganJami != null ? p.kelganJami : (parseFloat(p.kelganNarx) || 0) + (parseFloat(p.ndsSumma) || 0);
       const sizning = p.sizningNarx != null ? p.sizningNarx : roundPriceForDisplay(kelganJami * (1 + DEFAULT_PERCENT / 100));
       const foiz = p.foiz != null ? p.foiz : calcFoiz(kelganJami, sizning);
-      const ndsDisplay = p.ndsSumma != null ? formatNumber(p.ndsSumma) : '—';
+      const oxirgiNarx = kelganJami;
+      const metaRows = buildMetaRows(p);
+      const metaHtml = metaRows.map(r =>
+        `<div class="product-meta-row${r.type === 'number' ? ' product-meta-row--number' : ''}"><dt>${escapeHtml(r.label)}</dt><dd>${r.value}</dd></div>`
+      ).join('');
+      const nomi = hasValue(p.nomi) ? escapeHtml(p.nomi) : '';
+      const zavod = hasValue(p.zavod) ? escapeHtml(p.zavod) : '';
       const muddatiFmt = formatMuddati(p.muddati);
+      const hasMuddati = hasValue(p.muddati) || muddatiFmt !== '—';
+      const hasPrihod = hasValue(kelganJami);
       return `
-        <tr data-id="${p.id || i}" data-row="${i}">
-          <td class="col-no">${i + 1}</td>
-          <td class="col-nomi">${escapeHtml(p.nomi)}</td>
-          <td class="col-zavod">${escapeHtml(p.zavod || '—')}</td>
-          <td class="col-soni">${p.soni || 1}</td>
-          <td class="col-muddati">${escapeHtml(muddatiFmt)}</td>
-          <td class="col-kelgan">${formatNumber(p.kelganNarx)}</td>
-          <td class="col-nds">${ndsDisplay}</td>
-          <td class="col-kelgan-jami">${formatNumber(kelganJami)}</td>
-          <td class="col-sizning" tabindex="0" data-kelgan="${kelganJami}">
-            <span class="price-display">${formatNumber(sizning)}</span>
-            <input type="number" class="price-input" value="${sizning}" min="0" step="1" hidden>
-          </td>
-          <td class="col-foiz">${foiz}%</td>
-        </tr>
+        <article class="product-card" data-id="${p.id || i}" data-row="${i}" tabindex="0" role="article">
+          <div class="product-card-body">
+            <div class="product-card-header">
+              <span class="dori-label">Dori nomi</span>
+              ${nomi ? `<h3 class="product-card-name">${nomi}</h3>` : ''}
+              ${zavod ? `<p class="product-card-zavod">${zavod}</p>` : ''}
+            </div>
+            <div class="product-card-badges">
+              ${hasPrihod ? `<span class="prihod-badge">Prihod summa (s NDS): ${formatNumber(kelganJami)}</span>` : ''}
+              ${hasMuddati ? `<span class="muddati-badge">${escapeHtml(muddatiFmt)}</span>` : ''}
+            </div>
+            ${metaRows.length ? `<dl class="product-card-meta">${metaHtml}</dl>` : ''}
+            <div class="product-card-sizning" data-kelgan="${kelganJami}" data-prihod="${kelganJami}">
+              <label class="sizning-label">Sizning narx</label>
+              <p class="sizning-hint" title="Oxirgi narx shows the product's received price (cost with NDS). Read-only reference.">Oxirgi narx = product's received price. Read-only reference.</p>
+              <span class="price-display">${formatNumber(sizning)}</span>
+              <input type="number" class="price-input" value="${sizning}" min="0" step="1" hidden>
+            </div>
+            <div class="product-card-oxirgi-row">
+              <div class="product-card-oxirgi">
+                <span class="oxirgi-label">Oxirgi narx (s NDS)</span>
+                <span class="oxirgi-value">${formatNumber(oxirgiNarx)}</span>
+              </div>
+              <div class="product-card-foiz">
+                <span class="foiz-label">%</span>
+                <span class="foiz-value">${foiz}%</span>
+              </div>
+            </div>
+          </div>
+        </article>
       `;
     }).join('');
 
     updateProgress(products);
-    bindPriceCells(tbody, products);
+    bindPriceInputs(grid);
+    bindCardSelection(grid);
+  }
+
+  function bindCardSelection(grid) {
+    if (!grid) return;
+    const cards = grid.querySelectorAll('.product-card');
+    cards.forEach((card, idx) => {
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('.product-card-sizning')) return;
+        cards.forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        card.focus();
+      });
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const next = cards[idx + 1];
+          if (next) {
+            cards.forEach(c => c.classList.remove('selected'));
+            next.classList.add('selected');
+            next.focus();
+          }
+        }
+      });
+    });
   }
 
   function escapeHtml(s) {
@@ -153,15 +222,16 @@
   }
 
   function getProductsForExport() {
-    const tbody = document.getElementById('pricingBody');
-    if (!tbody) return productsCache;
-    const rows = tbody.querySelectorAll('tr');
+    const grid = document.getElementById('pricingBody');
+    if (!grid) return productsCache;
+    const cards = grid.querySelectorAll('.product-card');
     return productsCache.map((p, i) => {
-      const row = rows[i];
-      if (!row) return p;
-      const kelgan = parseFloat(row.querySelector('.col-sizning')?.dataset?.kelgan) || p.kelganJami || p.kelganNarx;
-      const display = row.querySelector('.price-display');
-      const input = row.querySelector('.price-input');
+      const card = cards[i];
+      if (!card) return p;
+      const sizningEl = card.querySelector('.product-card-sizning');
+      const kelgan = parseFloat(sizningEl?.dataset?.kelgan) || p.kelganJami || p.kelganNarx;
+      const display = card.querySelector('.price-display');
+      const input = card.querySelector('.price-input');
       let sizning = p.sizningNarx;
       if (input && !input.hidden) {
         sizning = parseFloat(input.value);
@@ -178,54 +248,67 @@
     });
   }
 
-  function bindPriceCells(tbody, products) {
-    if (!tbody) return;
+  function bindPriceInputs(grid) {
+    if (!grid) return;
 
-    tbody.querySelectorAll('.col-sizning').forEach((cell, idx) => {
-      const display = cell.querySelector('.price-display');
-      const input = cell.querySelector('.price-input');
-      const kelgan = parseFloat(cell.dataset.kelgan) || 0;
+    grid.querySelectorAll('.product-card-sizning').forEach((wrap, idx) => {
+      const display = wrap.querySelector('.price-display');
+      const input = wrap.querySelector('.price-input');
+      const kelgan = parseFloat(wrap.dataset.kelgan) || 0;
+      const cards = grid.querySelectorAll('.product-card');
 
       function showInput() {
-        cell.classList.add('cell-editing');
+        wrap.classList.add('cell-editing');
         display.hidden = true;
-        input.hidden = false;
+        input.removeAttribute('hidden');
         input.value = display.textContent.replace(/\s/g, '');
+        input.disabled = false;
+        input.readOnly = false;
         input.focus();
         input.select();
       }
 
+      function updateDerivedValues(val) {
+        const card = wrap.closest('.product-card');
+        if (!card) return;
+        const foizEl = card.querySelector('.foiz-value');
+        const v = parseFloat(val);
+        if (foizEl) foizEl.textContent = (isNaN(v) || v < 0 ? 0 : calcFoiz(kelgan, v)) + '%';
+      }
+
       function hideInput(save) {
-        cell.classList.remove('cell-editing');
+        wrap.classList.remove('cell-editing');
         display.hidden = false;
-        input.hidden = true;
+        input.setAttribute('hidden', '');
         if (save) {
           const val = parseFloat(input.value);
           if (!isNaN(val) && val >= 0) {
             display.textContent = formatNumber(val);
             input.value = val;
-            const foizCell = cell.closest('tr').querySelector('.col-foiz');
-            if (foizCell) foizCell.textContent = calcFoiz(kelgan, val) + '%';
+            updateDerivedValues(val);
             persistFromTable();
           }
         }
       }
 
-      cell.addEventListener('click', (e) => {
+      wrap.addEventListener('click', (e) => {
+        e.stopPropagation();
         if (e.target === input) return;
-        if (!cell.classList.contains('cell-editing')) showInput();
+        if (!wrap.classList.contains('cell-editing')) showInput();
       });
 
+      input.addEventListener('input', () => updateDerivedValues(input.value));
       input.addEventListener('blur', () => hideInput(true));
       input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
           hideInput(true);
-          const row = cell.closest('tr');
-          const nextRow = row?.nextElementSibling;
-          const nextCell = nextRow?.querySelector('.col-sizning');
-          if (nextCell && !nextCell.classList.contains('cell-editing')) {
-            nextCell.click();
+          const nextCard = cards[idx + 1];
+          if (nextCard) {
+            const nextWrap = nextCard.querySelector('.product-card-sizning');
+            if (nextWrap && !nextWrap.classList.contains('cell-editing')) {
+              nextWrap.click();
+            }
           }
         } else if (e.key === 'Escape') {
           input.value = display.textContent.replace(/\s/g, '');
@@ -256,14 +339,12 @@
     const products = [];
     const hasNdsColumn = mapping.nds != null;
 
-    if (mapping.narx == null) return products;
+    if (mapping.narx == null && mapping.prihod == null) return products;
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       const rowArr = Array.isArray(row) ? row : (row && typeof row === 'object' ? Object.values(row) : []);
       const nomi = mapping.nomi != null ? String(rowArr[mapping.nomi] ?? '').trim() : `Mahsulot ${i + 1}`;
-      const kelganFromExcel = parseNum(rowArr[mapping.narx]);
-      if (isNaN(kelganFromExcel) || kelganFromExcel <= 0) continue;
 
       const zavod = mapping.zavod != null ? String(rowArr[mapping.zavod] ?? '').trim() : '';
       const soniVal = mapping.soni != null ? parseNum(rowArr[mapping.soni]) : 1;
@@ -271,16 +352,27 @@
       const muddatiRaw = mapping.muddati != null ? rowArr[mapping.muddati] : '';
       const muddati = muddatiRaw != null && muddatiRaw !== '' ? muddatiRaw : '';
 
-      const kelganNarx = Math.round(kelganFromExcel * 100) / 100;
+      let kelganNarx;
       let ndsSumma;
 
-      if (hasNdsColumn) {
-        const ndsFromExcel = parseNum(rowArr[mapping.nds]);
-        ndsSumma = !isNaN(ndsFromExcel) && ndsFromExcel >= 0
-          ? Math.round((ndsFromExcel / soni) * 100) / 100
-          : Math.round(kelganNarx * NDS_RATE * 100) / 100;
+      const kelganFromExcel = mapping.narx != null ? parseNum(rowArr[mapping.narx]) : NaN;
+      const prihodFromExcel = mapping.prihod != null ? parseNum(rowArr[mapping.prihod]) : NaN;
+
+      if (!isNaN(kelganFromExcel) && kelganFromExcel > 0) {
+        kelganNarx = Math.round(kelganFromExcel * 100) / 100;
+        if (hasNdsColumn) {
+          const ndsFromExcel = parseNum(rowArr[mapping.nds]);
+          ndsSumma = !isNaN(ndsFromExcel) && ndsFromExcel >= 0
+            ? Math.round((ndsFromExcel / soni) * 100) / 100
+            : Math.round(kelganNarx * NDS_RATE * 100) / 100;
+        } else {
+          ndsSumma = Math.round(kelganNarx * NDS_RATE * 100) / 100;
+        }
+      } else if (!isNaN(prihodFromExcel) && prihodFromExcel > 0) {
+        ndsSumma = Math.round((prihodFromExcel - prihodFromExcel / 1.12) * 100) / 100;
+        kelganNarx = Math.round((prihodFromExcel / 1.12) * 100) / 100;
       } else {
-        ndsSumma = Math.round(kelganNarx * NDS_RATE * 100) / 100;
+        continue;
       }
 
       const kelganJami = Math.round((kelganNarx + ndsSumma) * 100) / 100;
@@ -312,7 +404,7 @@
       return `<option value="${h.idx}">${h.idx + 1} (${colLetter}) — ${escapeHtml(h.name)}</option>`;
     }).join('');
 
-    ['mapNomi', 'mapZavod', 'mapNarx', 'mapNds', 'mapSoni', 'mapMuddati'].forEach((id) => {
+    ['mapNomi', 'mapZavod', 'mapNarx', 'mapPrihod', 'mapNds', 'mapSoni', 'mapMuddati'].forEach((id) => {
       const sel = document.getElementById(id);
       if (!sel) return;
       sel.innerHTML = emptyOpt + options;
@@ -392,6 +484,7 @@
         nomi: getColIndex('mapNomi'),
         zavod: getColIndex('mapZavod'),
         narx: getColIndex('mapNarx'),
+        prihod: getColIndex('mapPrihod'),
         nds: getColIndex('mapNds'),
         soni: getColIndex('mapSoni'),
         muddati: getColIndex('mapMuddati')
@@ -399,8 +492,8 @@
       const rows = window.__EXCEL_ROWS__ || [];
       let products = parseWithMapping(rows, mapping);
       if (!products.length) {
-        if (mapping.narx == null) {
-          alert('Mahsulot olish uchun Kelgan narx ustunini tanlang.');
+        if (mapping.narx == null && mapping.prihod == null) {
+          alert('Mahsulot olish uchun Kelgan narx yoki Prihod summa ustunini tanlang.');
         } else if (!rows.length) {
           alert('Excelda ma\'lumot qatorlari yo\'q.');
         } else {
