@@ -123,7 +123,8 @@ body {
 }
 
 .step-card.step-card-mapping {
-  max-width: 720px;
+  max-width: 1100px;
+  width: 100%;
 }
 
 .step-card.step-card-mapping .step-card-inner {
@@ -225,102 +226,121 @@ body {
 }
 
 .mapping-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
   margin-bottom: 1rem;
-  max-height: 320px;
-  overflow-y: auto;
 }
 
-.map-row {
-  display: grid;
-  grid-template-columns: 1fr auto minmax(140px, 180px) 28px;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.65rem 0.75rem;
-  background: var(--bg-input);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-}
-
-.map-conf-high {
-  border-left: 3px solid var(--success);
-}
-
-.map-conf-mid {
-  border-left: 3px solid var(--warning);
-}
-
-.map-conf-low {
-  border-left: 3px solid var(--border);
-}
-
-.map-col-info {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  min-width: 0;
-}
-
-.map-col-letter {
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--accent);
-  background: var(--accent-light);
-  border-radius: 6px;
-}
-
-.map-col-text {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  min-width: 0;
-}
-
-.map-col-text strong {
-  font-size: 0.88rem;
-  color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.map-sample {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.map-arrow {
-  color: var(--text-muted);
-  font-size: 0.9rem;
-}
-
-.map-field-select {
-  padding: 0.45rem 0.5rem;
-  font-size: 0.82rem;
-  font-family: inherit;
+.excel-map-scroll {
+  overflow-x: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: #fff;
-  color: var(--text);
-  width: 100%;
+  -webkit-overflow-scrolling: touch;
 }
 
-.map-badge {
+.excel-map-strip {
+  display: flex;
+  flex-wrap: nowrap;
+  min-width: min-content;
+}
+
+.excel-col {
+  flex: 0 0 148px;
+  width: 148px;
+  border-right: 1px solid var(--border);
+  padding: 0;
+  background: #fff;
+}
+
+.excel-col:last-child {
+  border-right: none;
+}
+
+.excel-col-letter {
   text-align: center;
+  font-size: 0.72rem;
   font-weight: 700;
-  font-size: 0.85rem;
+  color: var(--text-muted);
+  background: #f1f5f9;
+  padding: 0.35rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.excel-col-header {
+  padding: 0.5rem 0.45rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 2.4rem;
+}
+
+.excel-col-map {
+  padding: 0.45rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  align-items: stretch;
+  background: var(--bg-input);
+}
+
+.excel-col-badge {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.map-conf-high .excel-col-letter {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.map-conf-high .excel-col-badge {
   color: var(--success);
+}
+
+.map-conf-mid .excel-col-letter {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.map-conf-mid .excel-col-badge {
+  color: var(--warning);
+}
+
+.map-conf-low .excel-col-badge,
+.map-conf-idle .excel-col-badge {
+  color: var(--text-muted);
+}
+
+.map-field-select {
+  padding: 0.4rem 0.35rem;
+  font-size: 0.75rem;
+  font-family: inherit;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--text);
+  width: 100%;
+  max-width: 100%;
+}
+
+.map-conf-high .map-field-select {
+  border-color: #6ee7b7;
+}
+
+.map-conf-mid .map-field-select {
+  border-color: #fcd34d;
+}
+
+.excel-map-tip {
+  margin: 0.5rem 0 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
 }
 
 .preview-block {
@@ -335,29 +355,79 @@ body {
 }
 
 .preview-table-wrap {
-  overflow-x: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: #fff;
+  overflow: hidden;
 }
 
-.preview-table {
-  width: 100%;
+.excel-preview-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.excel-preview-table {
   border-collapse: collapse;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
+  min-width: 100%;
 }
 
-.preview-table th,
-.preview-table td {
-  padding: 0.45rem 0.65rem;
-  border-bottom: 1px solid var(--border);
+.excel-preview-table th,
+.excel-preview-table td {
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--border);
   text-align: left;
   white-space: nowrap;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.preview-table th {
-  background: var(--bg-input);
+.excel-preview-table .excel-row-num {
+  width: 36px;
+  min-width: 36px;
+  text-align: center;
+  background: #f1f5f9;
+  color: var(--text-muted);
   font-weight: 600;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.excel-letters th {
+  background: #e2e8f0;
+  text-align: center;
+  font-weight: 700;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+}
+
+.excel-headers th {
+  background: #f8fafc;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.excel-mapped th {
+  background: #eff6ff;
+  font-weight: 600;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.excel-mapped th.is-mapped {
+  color: var(--accent);
+  background: #dbeafe;
+}
+
+.excel-mapped th.is-idle {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.excel-preview-table td.col-mapped {
+  background: rgba(239, 246, 255, 0.5);
 }
 
 .preview-empty {
@@ -383,13 +453,9 @@ body {
 }
 
 @media (max-width: 560px) {
-  .map-row {
-    grid-template-columns: 1fr;
-    gap: 0.4rem;
-  }
-
-  .map-arrow {
-    display: none;
+  .excel-col {
+    flex: 0 0 132px;
+    width: 132px;
   }
 
   .step-card {
