@@ -13,6 +13,7 @@
         <p>.xlsx yoki .xls formatida</p>
         <input type="file" id="fileInput" name="excel" accept=".xlsx,.xls" hidden>
         <button type="button" id="selectBtn" class="btn btn-primary btn-block">Fayl tanlash</button>
+        <a href="/template" class="btn btn-ghost btn-block template-link" download>Shablon yuklab olish</a>
         <div id="uploadStatus" class="upload-status"></div>
       </div>
     </div>
@@ -28,40 +29,23 @@
           </svg>
         </div>
         <h3>2. Excel ustunlarini bog'lang</h3>
-        <p class="mapping-hint">Har bir maydon uchun ustunni tanlang</p>
-        <form id="mappingForm" class="mapping-form">
-          <div class="mapping-grid">
-            <div class="mapping-row">
-              <label for="mapNomi">Dori nomi</label>
-              <select id="mapNomi" name="nomi"></select>
-            </div>
-            <div class="mapping-row">
-              <label for="mapZavod">Исполнитель</label>
-              <select id="mapZavod" name="zavod"></select>
-            </div>
-            <div class="mapping-row">
-              <label for="mapNarx">Kelgan narx</label>
-              <select id="mapNarx" name="narx"></select>
-            </div>
-            <div class="mapping-row">
-              <label for="mapPrihod">Prihod summa (s NDS)</label>
-              <select id="mapPrihod" name="prihod"></select>
-            </div>
-            <div class="mapping-row">
-              <label for="mapNds">NDS summa</label>
-              <select id="mapNds" name="nds"></select>
-            </div>
-            <div class="mapping-row">
-              <label for="mapSoni">Soni</label>
-              <select id="mapSoni" name="soni"></select>
-            </div>
-            <div class="mapping-row">
-              <label for="mapMuddati">Muddati</label>
-              <select id="mapMuddati" name="muddati"></select>
-            </div>
-          </div>
-          <p class="mapping-note">Kelgan narx kiritilsa — qiymat o'zgartirilmaydi. NDS bo'sh qoldirilsa: 1000×12%=120, 1000+120=1120.</p>
-        </form>
+        <p class="mapping-hint">Excel ustunlari ketma-ket. Tizim avtomatik taklif qiladi — faqat noaniqlarni tekshiring.</p>
+
+        <div class="invoice-meta">
+          <label for="invoiceNameInput">Faktura nomi</label>
+          <input type="text" id="invoiceNameInput" class="invoice-input" placeholder="Faktura nomi" autocomplete="off">
+          <span class="mapping-file">Fayl: <strong id="mappingFileName">—</strong></span>
+        </div>
+
+        <div id="mappingList" class="mapping-list" role="list"></div>
+
+        <div class="preview-block">
+          <h4 class="preview-title">Preview (5 qator)</h4>
+          <div id="previewTableWrap" class="preview-table-wrap"></div>
+        </div>
+
+        <p class="mapping-note">Kelgan narx yoki Prihod summa majburiy. NDS bo'sh qoldirilsa: 1000×12%=120.</p>
+
         <div class="mapping-actions">
           <button type="button" id="mappingCancelBtn" class="btn btn-ghost">Bekor</button>
           <button type="button" id="mappingSubmitBtn" class="btn btn-primary">Davom etish →</button>
@@ -73,14 +57,28 @@
 
 <div id="pricingSection" class="pricing-page" hidden>
   <div class="pricing-toolbar">
-    <div class="percent-buttons">
-      <span class="toolbar-label">Markup:</span>
-      <button type="button" class="btn-percent active" data-percent="10">10%</button>
-      <button type="button" class="btn-percent" data-percent="15">15%</button>
-      <button type="button" class="btn-percent" data-percent="20">20%</button>
+    <div class="toolbar-left">
+      <div class="invoice-badge-wrap">
+        <span class="toolbar-label">Faktura:</span>
+        <strong id="invoiceBadge">—</strong>
+      </div>
+      <div class="percent-buttons">
+        <span class="toolbar-label">Markup:</span>
+        <button type="button" class="btn-percent active" data-percent="10">10%</button>
+        <button type="button" class="btn-percent" data-percent="15">15%</button>
+        <button type="button" class="btn-percent" data-percent="20">20%</button>
+      </div>
     </div>
     <div class="toolbar-actions">
       <span class="progress-text" id="progressText">0 / 0</span>
+      <div class="visibility-wrap">
+        <button type="button" id="visibilityToggleBtn" class="btn btn-secondary">Maydonlar</button>
+        <div id="visibilityPanel" class="visibility-panel" hidden></div>
+      </div>
+      <div class="export-mode">
+        <label><input type="radio" name="exportMode" value="visible" checked> Ko'rinish</label>
+        <label><input type="radio" name="exportMode" value="full"> To'liq</label>
+      </div>
       <button type="button" id="applyAllBtn" class="btn btn-secondary">Barchasiga qo'llash</button>
       <button type="button" id="exportBtn" class="btn btn-success">Excel yuklab olish</button>
       <button type="button" id="newFileBtn" class="btn btn-ghost">Yangi fayl</button>
