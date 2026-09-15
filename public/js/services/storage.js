@@ -15,11 +15,16 @@ function readJson(key) {
   }
 }
 
+/** @returns {{ ok: boolean, error?: string }} */
 function writeJson(key, value) {
   try {
     localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    /* quota / private mode */
+    return { ok: true };
+  } catch (e) {
+    const msg = e?.name === 'QuotaExceededError'
+      ? 'Brauzer xotirasi to\'ldi. Saqlash imkonsiz.'
+      : 'Saqlash muvaffaqiyatsiz (private rejim yoki bloklangan storage).';
+    return { ok: false, error: msg };
   }
 }
 
@@ -49,8 +54,9 @@ export function loadSession() {
   return null;
 }
 
+/** @returns {{ ok: boolean, error?: string }} */
 export function saveSession(session) {
-  writeJson(SESSION_KEY, { ...session, updated: Date.now() });
+  return writeJson(SESSION_KEY, { ...session, updated: Date.now() });
 }
 
 export function clearSession() {
@@ -58,18 +64,48 @@ export function clearSession() {
   clearLegacy();
 }
 
+export function hasSavedSession() {
+  const s = readJson(SESSION_KEY);
+  return !!(s?.products?.length);
+}
+
 export function loadMappingPreset() {
   return readJson(PRESET_KEY);
 }
 
-export function saveMappingPreset(mapping) {
-  writeJson(PRESET_KEY, { mapping, savedAt: Date.now() });
+/**
+ * @param {Record<string, number>} mapping fieldKey -> colIdx
+ * @param {Array<{idx:number,name:string}>} headers
+ */
+export function saveMappingPreset(mapping, headers = []) {
+  const byHeader = {};
+  if (Array.isArray(headers)) {
+    Object.entries(mapping).forEach(([fieldKey, colIdx]) => {
+      const h = headers.find((x) => x.idx === colIdx);
+      if (h?.name) byHeader[normalizeHeader(h.name)] = fieldKey;
+    });
+  }
+  return writeJson(PRESET_KEY, {
+    mapping,
+    byHeader,
+    savedAt: Date.now()
+  });
+}
+
+function normalizeHeader(s) {
+  return String(s || '')
+    .toLowerCase()
+    .trim()
+    .replace(/ё/g, 'е')
+    .replace(/[_\-./\\]+/g, ' ')
+    .replace(/\s+/g, ' ');
 }
 
 export function loadVisibility() {
   return readJson(VISIBILITY_KEY) || defaultVisibility();
 }
 
+/** @returns {{ ok: boolean, error?: string }} */
 export function saveVisibility(visibility) {
-  writeJson(VISIBILITY_KEY, visibility);
+  return writeJson(VISIBILITY_KEY, visibility);
 }

@@ -3,6 +3,7 @@ import {
   loadSession,
   saveSession,
   clearSession,
+  hasSavedSession,
   loadMappingPreset,
   saveMappingPreset,
   loadVisibility,
@@ -23,12 +24,15 @@ const state = {
   uploadedAt: null,
   percent: DEFAULT_PERCENT,
   exportMode: 'visible',
-  excelRows: []
+  excelRows: [],
+  headers: []
 };
 
 function persist() {
-  state.products = collectProductsFromDom(state.products);
-  saveSession({
+  if (document.getElementById('pricingBody')?.querySelector('.product-card')) {
+    state.products = collectProductsFromDom(state.products);
+  }
+  const result = saveSession({
     invoiceName: state.invoiceName,
     fileName: state.fileName,
     uploadedAt: state.uploadedAt,
@@ -38,21 +42,41 @@ function persist() {
     percent: state.percent
   });
   saveVisibility(state.visibility);
+  if (!result.ok) {
+    alert(result.error || 'Saqlash muvaffaqiyatsiz. Narxlar yo\'qolishi mumkin.');
+  }
   const el = document.getElementById('progressText');
   if (el) {
     const priced = state.products.filter((p) => p.sizningNarx != null && p.sizningNarx > 0).length;
     el.textContent = `${priced} / ${state.products.length}`;
   }
+  return result.ok;
 }
 
-function showUpload() {
+/** Show upload screen. clearData=true only for explicit "Yangi fayl". */
+function showUpload({ clearData = false } = {}) {
   document.getElementById('uploadSection').hidden = false;
   document.getElementById('uploadCard').hidden = false;
   document.getElementById('mappingCard').hidden = true;
   document.getElementById('pricingSection').hidden = true;
-  clearSession();
-  state.products = [];
-  state.excelRows = [];
+  if (clearData) {
+    clearSession();
+    state.products = [];
+    state.excelRows = [];
+    state.headers = [];
+    state.mapping = {};
+    state.invoiceName = '';
+    state.fileName = '';
+    state.uploadedAt = null;
+  }
+}
+
+function restorePricingFromState() {
+  if (!state.products.length) {
+    showUpload({ clearData: false });
+    return;
+  }
+  showPricing();
 }
 
 function showPricing() {
@@ -61,7 +85,9 @@ function showPricing() {
   updateInvoiceBadge(state.invoiceName);
   renderVisibilityPanel(state.visibility, (vis) => {
     state.visibility = vis;
-    saveVisibility(vis);
+    const r = saveVisibility(vis);
+    if (!r.ok) alert(r.error);
+    persist();
     renderCards(state.products, state.visibility, {
       onPersist: persist,
       defaultPercent: state.percent
@@ -76,7 +102,20 @@ function showPricing() {
 const mappingCtrl = createMappingController({
   onCancel: () => {
     document.getElementById('fileInput').value = '';
-    showUpload();
+    // Keep existing priced session — do not clearSession
+    if (state.products.length) {
+      restorePricingFromState();
+    } else if (hasSavedSession()) {
+      const saved = loadSession();
+      if (saved?.products?.length) {
+        applySavedSession(saved);
+        showPricing();
+      } else {
+        showUpload({ clearData: false });
+      }
+    } else {
+      showUpload({ clearData: false });
+    }
   },
   onSubmit: ({ mapping, rows, invoiceName, fileName }) => {
     let products = parseProducts(rows, mapping);
@@ -92,7 +131,7 @@ const mappingCtrl = createMappingController({
     state.uploadedAt = Date.now();
     state.products = products;
     state.visibility = visibilityAfterMapping(mapping, state.visibility);
-    saveMappingPreset(mapping);
+    saveMappingPreset(mapping, state.headers);
     saveVisibility(state.visibility);
     persist();
     showPricing();
@@ -148,14 +187,27 @@ async function doExport() {
     a.download = `prihod_${safeName}_${Date.now()}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
-    clearSession();
-    showUpload();
+    // Keep session so user can continue editing / re-export
+    alert('Excel yuklab olindi. Narxlar saqlanib qoldi — yangi fayl uchun "Yangi fayl" ni bosing.');
   } catch (e) {
     alert(e.message || 'Xatolik');
   } finally {
     exportBtn.disabled = false;
     exportBtn.textContent = 'Excel yuklab olish';
   }
+}
+
+function applySavedSession(saved) {
+  state.products = saved.products;
+  state.mapping = saved.mapping || {};
+  state.visibility = saved.visibility || loadVisibility();
+  state.invoiceName = saved.invoiceName || '';
+  state.fileName = saved.fileName || '';
+  state.uploadedAt = saved.uploadedAt || null;
+  state.percent = saved.percent || DEFAULT_PERCENT;
+  document.querySelectorAll('.btn-percent').forEach((b) => {
+    b.classList.toggle('active', parseInt(b.dataset.percent, 10) === state.percent);
+  });
 }
 
 function init() {
@@ -169,6 +221,17 @@ function init() {
 
   fileInput?.addEventListener('change', () => {
     if (!fileInput.files.length) return;
+
+    if (state.products.length) {
+      const ok = confirm(
+        'Yangi Excel yuklansa, joriy narxlangan mahsulotlar o\'rniga yangilari keladi.\nDavom ettirasizmi?\n\n(Bekor qilsangiz — eski narxlar saqlanadi.)'
+      );
+      if (!ok) {
+        fileInput.value = '';
+        return;
+      }
+    }
+
     const file = fileInput.files[0];
     uploadStatus.textContent = 'Yuklanmoqda...';
     uploadStatus.className = 'upload-status';
@@ -181,13 +244,14 @@ function init() {
       .then((data) => {
         if (data.error) throw new Error(data.error);
         if (!data.headers?.length) throw new Error('Excelda ustunlar topilmadi');
+        state.headers = data.headers;
         const preset = loadMappingPreset();
         mappingCtrl.show({
           headers: data.headers,
           rows: data.rows || [],
           fileName: file.name,
           invoiceName: invoiceNameFromFile(file.name),
-          presetMapping: preset?.mapping || null
+          preset: preset || null
         });
         uploadStatus.textContent = '';
         fileInput.value = '';
@@ -201,6 +265,7 @@ function init() {
   bindToolbar({
     setPercent: (p) => {
       state.percent = p;
+      persist();
     },
     onApplyAll: () => {
       if (!state.products.length) return;
@@ -214,7 +279,7 @@ function init() {
     onExport: doExport,
     onNewFile: () => {
       if (confirm('Yangi fayl yuklasangiz, joriy narxlar o\'chadi. Davom ettirasizmi?')) {
-        showUpload();
+        showUpload({ clearData: true });
       }
     },
     getExportMode: () => state.exportMode,
@@ -225,16 +290,7 @@ function init() {
 
   const saved = loadSession();
   if (saved?.products?.length) {
-    state.products = saved.products;
-    state.mapping = saved.mapping || {};
-    state.visibility = saved.visibility || loadVisibility();
-    state.invoiceName = saved.invoiceName || '';
-    state.fileName = saved.fileName || '';
-    state.uploadedAt = saved.uploadedAt || null;
-    state.percent = saved.percent || DEFAULT_PERCENT;
-    document.querySelectorAll('.btn-percent').forEach((b) => {
-      b.classList.toggle('active', parseInt(b.dataset.percent, 10) === state.percent);
-    });
+    applySavedSession(saved);
     showPricing();
   }
 }

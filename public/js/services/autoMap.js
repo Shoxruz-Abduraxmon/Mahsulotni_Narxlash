@@ -30,10 +30,9 @@ function scoreMatch(headerName, field) {
 
 /**
  * @param {Array<{idx:number,name:string}>} headers
- * @param {Record<string, number>|null} presetMapping fieldKey -> colIdx
- * @returns {Array<{colIdx:number, headerName:string, fieldKey:string|null, confidence:number}>}
+ * @param {object|null} preset { mapping?, byHeader? }
  */
-export function autoMap(headers, presetMapping = null) {
+export function autoMap(headers, preset = null) {
   const usedFields = new Set();
   const results = headers.map((h) => ({
     colIdx: h.idx,
@@ -42,18 +41,38 @@ export function autoMap(headers, presetMapping = null) {
     confidence: 0
   }));
 
-  if (presetMapping && typeof presetMapping === 'object') {
+  const byHeader = preset?.byHeader && typeof preset.byHeader === 'object' ? preset.byHeader : null;
+  const presetMapping = preset?.mapping && typeof preset.mapping === 'object' ? preset.mapping : null;
+
+  // 1) Prefer header-name fingerprint from last successful mapping
+  if (byHeader) {
+    results.forEach((row) => {
+      const key = byHeader[normalize(row.headerName)];
+      if (!key || usedFields.has(key)) return;
+      if (!IMPORT_FIELDS.some((f) => f.key === key)) return;
+      row.fieldKey = key;
+      row.confidence = 0.98;
+      usedFields.add(key);
+    });
+  }
+
+  // 2) Fallback: same column index only if header name still matches loosely
+  if (presetMapping) {
     Object.entries(presetMapping).forEach(([fieldKey, colIdx]) => {
       if (colIdx == null || usedFields.has(fieldKey)) return;
       const row = results.find((r) => r.colIdx === colIdx);
       if (!row || row.fieldKey) return;
       if (!IMPORT_FIELDS.some((f) => f.key === fieldKey)) return;
+      const field = IMPORT_FIELDS.find((f) => f.key === fieldKey);
+      const score = field ? scoreMatch(row.headerName, field) : 0;
+      if (score < 0.7) return;
       row.fieldKey = fieldKey;
-      row.confidence = 0.95;
+      row.confidence = Math.max(0.9, score);
       usedFields.add(fieldKey);
     });
   }
 
+  // 3) Fuzzy match remaining
   const candidates = [];
   results.forEach((row) => {
     if (row.fieldKey) return;
@@ -79,7 +98,6 @@ export function autoMap(headers, presetMapping = null) {
   return results;
 }
 
-/** Convert column→field assignments to fieldKey→colIdx mapping */
 export function assignmentsToMapping(assignments) {
   const mapping = {};
   assignments.forEach((a) => {

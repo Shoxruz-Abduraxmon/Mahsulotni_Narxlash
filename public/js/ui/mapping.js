@@ -116,12 +116,12 @@ export function createMappingController({ onCancel, onSubmit }) {
     wrap.innerHTML = html;
   }
 
-  function show({ headers, rows, fileName, invoiceName, presetMapping }) {
+  function show({ headers, rows, fileName, invoiceName, preset }) {
     state.headers = headers;
     state.rows = rows;
     state.fileName = fileName || '';
     state.invoiceName = invoiceName || '';
-    state.assignments = autoMap(headers, presetMapping);
+    state.assignments = autoMap(headers, preset || null);
 
     document.getElementById('uploadCard').hidden = true;
     document.getElementById('mappingCard').hidden = false;

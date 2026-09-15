@@ -76,7 +76,7 @@ export function renderCards(products, visibility, { onPersist, defaultPercent = 
             ${metaRows.length ? `<dl class="product-card-meta">${metaHtml}</dl>` : ''}
             <div class="product-card-sizning" data-kelgan="${kelganJami}" data-prihod="${kelganJami}">
               <label class="sizning-label">Sizning narx</label>
-              <span class="price-display">${formatNumber(sizning)}</span>
+              <span class="price-display" data-raw="${sizning}">${formatNumber(sizning)}</span>
               <input type="number" class="price-input" value="${sizning}" min="0" step="1" hidden>
             </div>
             <div class="product-card-oxirgi-row">
@@ -130,7 +130,10 @@ export function collectProductsFromDom(productsCache) {
     if (input && !input.hasAttribute('hidden')) {
       sizning = parseFloat(input.value);
     } else if (display) {
-      sizning = parseFloat(display.textContent.replace(/\s/g, '')) || p.sizningNarx;
+      const raw = display.dataset.raw;
+      sizning = raw != null && raw !== ''
+        ? parseFloat(raw)
+        : parseFloat(display.textContent.replace(/\s/g, '').replace(/\u00a0/g, '')) || p.sizningNarx;
     }
     return {
       ...p,
@@ -176,7 +179,7 @@ function bindPriceInputs(grid, onPersist) {
       wrap.classList.add('cell-editing');
       display.hidden = true;
       input.removeAttribute('hidden');
-      input.value = display.textContent.replace(/\s/g, '');
+      input.value = display.dataset.raw || display.textContent.replace(/\s/g, '').replace(/\u00a0/g, '');
       input.disabled = false;
       input.readOnly = false;
       input.focus();
@@ -198,6 +201,7 @@ function bindPriceInputs(grid, onPersist) {
         const val = parseFloat(input.value);
         if (!isNaN(val) && val >= 0) {
           display.textContent = formatNumber(val);
+          display.dataset.raw = String(val);
           input.value = val;
           updateFoiz(val);
           onPersist?.();
@@ -221,7 +225,7 @@ function bindPriceInputs(grid, onPersist) {
         const nextWrap = nextCard?.querySelector('.product-card-sizning');
         if (nextWrap && !nextWrap.classList.contains('cell-editing')) nextWrap.click();
       } else if (e.key === 'Escape') {
-        input.value = display.textContent.replace(/\s/g, '');
+        input.value = display.dataset.raw || display.textContent.replace(/\s/g, '').replace(/\u00a0/g, '');
         hideInput(false);
       }
     });
