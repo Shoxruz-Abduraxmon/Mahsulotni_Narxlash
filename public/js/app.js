@@ -39,7 +39,8 @@ function persist() {
     mapping: state.mapping,
     visibility: state.visibility,
     products: state.products,
-    percent: state.percent
+    percent: state.percent,
+    exportMode: state.exportMode
   });
   saveVisibility(state.visibility);
   if (!result.ok) {
@@ -83,7 +84,7 @@ function showPricing() {
   document.getElementById('uploadSection').hidden = true;
   document.getElementById('pricingSection').hidden = false;
   updateInvoiceBadge(state.invoiceName);
-  renderVisibilityPanel(state.visibility, (vis) => {
+  renderVisibilityPanel(() => state.visibility, (vis) => {
     state.visibility = vis;
     const r = saveVisibility(vis);
     if (!r.ok) alert(r.error);
@@ -204,10 +205,13 @@ function applySavedSession(saved) {
   state.invoiceName = saved.invoiceName || '';
   state.fileName = saved.fileName || '';
   state.uploadedAt = saved.uploadedAt || null;
-  state.percent = saved.percent || DEFAULT_PERCENT;
+  state.percent = saved.percent ?? DEFAULT_PERCENT;
+  state.exportMode = saved.exportMode === 'full' ? 'full' : 'visible';
   document.querySelectorAll('.btn-percent').forEach((b) => {
     b.classList.toggle('active', parseInt(b.dataset.percent, 10) === state.percent);
   });
+  const modeRadio = document.querySelector(`input[name="exportMode"][value="${state.exportMode}"]`);
+  if (modeRadio) modeRadio.checked = true;
 }
 
 function init() {
@@ -285,6 +289,7 @@ function init() {
     getExportMode: () => state.exportMode,
     setExportMode: (m) => {
       state.exportMode = m;
+      persist();
     }
   });
 

@@ -188,31 +188,31 @@ export function visibilityAfterMapping(mapping, baseVisibility) {
   return vis;
 }
 
+/** Always in Excel (identity) — independent of card visibility / mapping */
+const ALWAYS_EXPORT_KEYS = ['nomi', 'shtrix', 'mxik'];
+
+/**
+ * Card visibility controls on-screen fields only.
+ * Export: identity always; "full" = all exportable; "visible" = visible card fields + identity.
+ */
 export function exportableColumns(visibility, mapping, exportMode) {
   const result = [];
   const pushUnique = (key) => {
     if (!result.includes(key)) result.push(key);
   };
 
-  pushUnique('nomi');
+  ALWAYS_EXPORT_KEYS.forEach(pushUnique);
 
   ALL_FIELDS.forEach((f) => {
     if (!f.exportable) return;
-    if (f.key === 'nomi' || f.key === 'prihod') return;
-
-    const isImport = IMPORT_FIELDS.some((i) => i.key === f.key);
-    const isMapped = isImport ? mapping[f.key] != null : true;
-    const isComputed = ['sizningNarx', 'kelganJami'].includes(f.key);
+    if (ALWAYS_EXPORT_KEYS.includes(f.key) || f.key === 'prihod') return;
 
     if (exportMode === 'full') {
-      if (isComputed || isMapped || ['kelganNarx', 'soni', 'zavod', 'muddati'].includes(f.key)) {
-        pushUnique(f.key);
-      }
+      pushUnique(f.key);
       return;
     }
 
     if (f.lockedVisible || visibility[f.key]) {
-      if (isImport && !isMapped && ['shtrix', 'mxik'].includes(f.key)) return;
       pushUnique(f.key);
     }
   });

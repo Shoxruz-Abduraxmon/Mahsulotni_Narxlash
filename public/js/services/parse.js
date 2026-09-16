@@ -49,8 +49,9 @@ export function parseProducts(rows, mapping) {
         ndsSumma = Math.round(kelganNarx * NDS_RATE * 100) / 100;
       }
     } else if (!isNaN(prihodFromExcel) && prihodFromExcel > 0) {
-      ndsSumma = Math.round((prihodFromExcel - prihodFromExcel / 1.12) * 100) / 100;
-      kelganNarx = Math.round((prihodFromExcel / 1.12) * 100) / 100;
+      const ndsFactor = 1 + NDS_RATE;
+      ndsSumma = Math.round((prihodFromExcel - prihodFromExcel / ndsFactor) * 100) / 100;
+      kelganNarx = Math.round((prihodFromExcel / ndsFactor) * 100) / 100;
     } else {
       continue;
     }

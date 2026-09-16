@@ -19,8 +19,8 @@ const PRODUCT_VALUE_GETTERS = {
   nds: (p) => parseFloat(p.ndsSumma) || '',
   soni: (p) => p.soni || 1,
   muddati: (p) => p.muddati || '-',
-  shtrix: (p) => p.shtrix || '',
-  mxik: (p) => p.mxik || '',
+  shtrix: (p) => (p.shtrix != null && p.shtrix !== '' ? String(p.shtrix) : ''),
+  mxik: (p) => (p.mxik != null && p.mxik !== '' ? String(p.mxik) : ''),
   sizningNarx: (p) => parseFloat(p.sizningNarx) || parseFloat(p.kelganNarx) || '',
   kelganJami: (p) => parseFloat(p.kelganJami) || '',
   foiz: (p) => p.foiz != null ? p.foiz : ''

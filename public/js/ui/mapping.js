@@ -56,9 +56,11 @@ export function createMappingController({ onCancel, onSubmit }) {
   }
 
   /** Horizontal Excel header strip + map dropdowns */
-  function renderSheet() {
+  function renderSheet(focusIdx) {
     const list = document.getElementById('mappingList');
     if (!list) return;
+
+    const prevScroll = list.querySelector('.excel-map-scroll')?.scrollLeft || 0;
 
     const cols = state.assignments
       .map((a, i) => {
@@ -86,6 +88,9 @@ export function createMappingController({ onCancel, onSubmit }) {
       <p class="excel-map-tip">Har bir ustun ostidan tanlang: bu Excel ustuni tizimda nima. ✓ — tayyor, ? — tekshiring.</p>
     `;
 
+    const scrollEl = list.querySelector('.excel-map-scroll');
+    if (scrollEl) scrollEl.scrollLeft = prevScroll;
+
     list.querySelectorAll('.map-field-select').forEach((sel) => {
       sel.addEventListener('change', () => {
         const idx = parseInt(sel.dataset.idx, 10);
@@ -97,10 +102,15 @@ export function createMappingController({ onCancel, onSubmit }) {
         }
         state.assignments[idx].fieldKey = val;
         state.assignments[idx].confidence = val ? 1 : 0;
-        renderSheet();
+        renderSheet(idx);
         renderPreview();
       });
     });
+
+    if (focusIdx != null) {
+      const sel = list.querySelector(`.map-field-select[data-idx="${focusIdx}"]`);
+      sel?.focus({ preventScroll: true });
+    }
   }
 
   /** Full-width Excel-like preview: all columns, mapped header labels on top */

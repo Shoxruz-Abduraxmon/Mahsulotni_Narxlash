@@ -8,21 +8,25 @@ import {
   calcFoiz
 } from '../utils/format.js';
 
+function isVis(visibility, key) {
+  return visibility[key] !== false;
+}
+
 function buildMeta(p, visibility) {
   const rows = [];
-  if (visibility.kelganNarx && hasValue(p.kelganNarx)) {
+  if (isVis(visibility, 'kelganNarx') && hasValue(p.kelganNarx)) {
     rows.push({ label: 'Kelgan narx', value: formatNumber(p.kelganNarx), type: 'number' });
   }
-  if (visibility.soni && hasValue(p.soni)) {
+  if (isVis(visibility, 'soni') && hasValue(p.soni)) {
     rows.push({ label: 'Soni', value: p.soni, type: 'number' });
   }
-  if (visibility.nds && hasValue(p.ndsSumma)) {
+  if (isVis(visibility, 'nds') && hasValue(p.ndsSumma)) {
     rows.push({ label: 'NDS 12%', value: formatNumber(p.ndsSumma), type: 'number' });
   }
-  if (visibility.shtrix && hasValue(p.shtrix)) {
+  if (isVis(visibility, 'shtrix') && hasValue(p.shtrix)) {
     rows.push({ label: 'Shtrix', value: escapeHtml(p.shtrix), type: 'text' });
   }
-  if (visibility.mxik && hasValue(p.mxik)) {
+  if (isVis(visibility, 'mxik') && hasValue(p.mxik)) {
     rows.push({ label: 'MXIK', value: escapeHtml(p.mxik), type: 'text' });
   }
   return rows;
@@ -32,6 +36,7 @@ export function renderCards(products, visibility, { onPersist, defaultPercent = 
   const grid = document.getElementById('pricingBody');
   if (!grid) return;
 
+  const scrollY = window.scrollY;
   const vis = visibility || {};
 
   grid.innerHTML = products
@@ -54,12 +59,12 @@ export function renderCards(products, visibility, { onPersist, defaultPercent = 
         )
         .join('');
       const nomi = hasValue(p.nomi) ? escapeHtml(p.nomi) : '';
-      const zavod = vis.zavod !== false && hasValue(p.zavod) ? escapeHtml(p.zavod) : '';
+      const zavod = isVis(vis, 'zavod') && hasValue(p.zavod) ? escapeHtml(p.zavod) : '';
       const muddatiFmt = formatMuddati(p.muddati);
-      const showMuddati = vis.muddati !== false && (hasValue(p.muddati) || muddatiFmt !== '—');
-      const showPrihod = vis.prihod !== false && hasValue(kelganJami);
-      const showFoiz = vis.foiz !== false;
-      const showOxirgi = vis.kelganJami !== false;
+      const showMuddati = isVis(vis, 'muddati') && (hasValue(p.muddati) || muddatiFmt !== '—');
+      const showPrihod = isVis(vis, 'prihod') && hasValue(kelganJami);
+      const showFoiz = isVis(vis, 'foiz');
+      const showOxirgi = isVis(vis, 'kelganJami');
 
       return `
         <article class="product-card" data-id="${p.id || i}" data-row="${i}" tabindex="0" role="article">
@@ -106,6 +111,7 @@ export function renderCards(products, visibility, { onPersist, defaultPercent = 
   bindPriceInputs(grid, onPersist);
   bindCardSelection(grid);
   updateProgress(products);
+  window.scrollTo(0, scrollY);
 }
 
 function updateProgress(products) {
@@ -152,7 +158,7 @@ function bindCardSelection(grid) {
       if (e.target.closest('.product-card-sizning')) return;
       cards.forEach((c) => c.classList.remove('selected'));
       card.classList.add('selected');
-      card.focus();
+      card.focus({ preventScroll: true });
     });
     card.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
@@ -161,7 +167,7 @@ function bindCardSelection(grid) {
         if (next) {
           cards.forEach((c) => c.classList.remove('selected'));
           next.classList.add('selected');
-          next.focus();
+          next.focus({ preventScroll: true });
         }
       }
     });
@@ -169,11 +175,13 @@ function bindCardSelection(grid) {
 }
 
 function bindPriceInputs(grid, onPersist) {
+  const cards = [...grid.querySelectorAll('.product-card')];
+
   grid.querySelectorAll('.product-card-sizning').forEach((wrap, idx) => {
     const display = wrap.querySelector('.price-display');
     const input = wrap.querySelector('.price-input');
     const kelgan = parseFloat(wrap.dataset.kelgan) || 0;
-    const cards = grid.querySelectorAll('.product-card');
+    let suppressBlur = false;
 
     function showInput() {
       wrap.classList.add('cell-editing');
@@ -182,7 +190,7 @@ function bindPriceInputs(grid, onPersist) {
       input.value = display.dataset.raw || display.textContent.replace(/\s/g, '').replace(/\u00a0/g, '');
       input.disabled = false;
       input.readOnly = false;
-      input.focus();
+      input.focus({ preventScroll: true });
       input.select();
     }
 
@@ -194,9 +202,6 @@ function bindPriceInputs(grid, onPersist) {
     }
 
     function hideInput(save) {
-      wrap.classList.remove('cell-editing');
-      display.hidden = false;
-      input.setAttribute('hidden', '');
       if (save) {
         const val = parseFloat(input.value);
         if (!isNaN(val) && val >= 0) {
@@ -204,9 +209,17 @@ function bindPriceInputs(grid, onPersist) {
           display.dataset.raw = String(val);
           input.value = val;
           updateFoiz(val);
-          onPersist?.();
         }
       }
+      wrap.classList.remove('cell-editing');
+      display.hidden = false;
+      // Move focus off input BEFORE hiding — otherwise browser jumps to toolbar
+      const card = wrap.closest('.product-card');
+      if (document.activeElement === input) {
+        card?.focus({ preventScroll: true });
+      }
+      input.setAttribute('hidden', '');
+      if (save) onPersist?.();
     }
 
     wrap.addEventListener('click', (e) => {
@@ -216,17 +229,27 @@ function bindPriceInputs(grid, onPersist) {
     });
 
     input.addEventListener('input', () => updateFoiz(input.value));
-    input.addEventListener('blur', () => hideInput(true));
+    input.addEventListener('blur', () => {
+      if (suppressBlur) return;
+      hideInput(true);
+    });
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
+        suppressBlur = true;
         hideInput(true);
         const nextCard = cards[idx + 1];
         const nextWrap = nextCard?.querySelector('.product-card-sizning');
-        if (nextWrap && !nextWrap.classList.contains('cell-editing')) nextWrap.click();
+        suppressBlur = false;
+        if (nextWrap && !nextWrap.classList.contains('cell-editing')) {
+          requestAnimationFrame(() => nextWrap.click());
+        }
       } else if (e.key === 'Escape') {
+        e.preventDefault();
+        suppressBlur = true;
         input.value = display.dataset.raw || display.textContent.replace(/\s/g, '').replace(/\u00a0/g, '');
         hideInput(false);
+        suppressBlur = false;
       }
     });
   });

@@ -33,7 +33,8 @@ function getExcelRaw(filePath) {
   const workbook = XLSX.readFile(filePath);
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
-  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: true });
+  // raw:false — barcode/MXIK as text (leading zeros); numbers still parseable as strings
+  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
 
   if (!rows.length) return { headers: [], rows: [] };
 
@@ -123,7 +124,9 @@ router.post('/export', async (req, res) => {
           { key: 'soni', header: 'Количество', width: 12 },
           { key: 'kelganNarx', header: 'Цена без НДС', width: 14 },
           { key: 'sizningNarx', header: 'Ваша цена', width: 14 },
-          { key: 'kelganJami', header: 'Сумма прихода (ед.)', width: 16 }
+          { key: 'kelganJami', header: 'Сумма прихода (ед.)', width: 16 },
+          { key: 'shtrix', header: 'Штрих-код', width: 18 },
+          { key: 'mxik', header: 'MXIK', width: 16 }
         ];
 
     const workbook = new ExcelJS.Workbook();
@@ -151,7 +154,8 @@ router.post('/export', async (req, res) => {
       const sizningNarx = parseFloat(p.sizningNarx) || parseFloat(p.kelganNarx) || 0;
       const soni = p.soni || 1;
       const rowPrihod = Math.round(sizningNarx * soni * 100) / 100;
-      const rowNds = Math.round((rowPrihod - rowPrihod / 1.12) * 100) / 100;
+      const ndsFactor = 1.12; // keep in sync with client NDS_RATE (0.12)
+      const rowNds = Math.round((rowPrihod - rowPrihod / ndsFactor) * 100) / 100;
 
       const values = [i + 1];
       colDefs.forEach((c) => {
@@ -165,7 +169,17 @@ router.post('/export', async (req, res) => {
           values.push(p[c.key] != null ? p[c.key] : '');
         }
       });
-      sheet.addRow(values);
+      const dataRow = sheet.addRow(values);
+      // Force barcode / MXIK as text so Excel does not use scientific notation
+      colDefs.forEach((c, ci) => {
+        if (c.key === 'shtrix' || c.key === 'mxik') {
+          const cell = dataRow.getCell(ci + 2);
+          if (cell.value != null && cell.value !== '') {
+            cell.value = String(cell.value);
+            cell.numFmt = '@';
+          }
+        }
+      });
     });
 
     const buffer = await workbook.xlsx.writeBuffer();

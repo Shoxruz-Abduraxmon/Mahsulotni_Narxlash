@@ -6,34 +6,78 @@ export function updateInvoiceBadge(invoiceName) {
   if (el) el.textContent = invoiceName || '—';
 }
 
-export function renderVisibilityPanel(visibility, onChange) {
+/**
+ * @param {Record<string, boolean>|(() => Record<string, boolean>)} visibilityOrGetter
+ * @param {(next: Record<string, boolean>) => void} onChange
+ */
+export function renderVisibilityPanel(visibilityOrGetter, onChange) {
   const panel = document.getElementById('visibilityPanel');
   if (!panel) return;
 
-  const fields = ALL_FIELDS.filter((f) => f.cardRole);
-  panel.innerHTML = fields
-    .map((f) => {
-      const locked = f.lockedVisible;
-      const checked = visibility[f.key] !== false;
-      return `
-        <label class="vis-item${locked ? ' vis-locked' : ''}">
-          <input type="checkbox" data-key="${f.key}" ${checked ? 'checked' : ''} ${locked ? 'disabled' : ''}>
-          <span>${escapeHtml(f.label)}</span>
-        </label>
-      `;
-    })
-    .join('');
+  const getVisibility = typeof visibilityOrGetter === 'function'
+    ? visibilityOrGetter
+    : () => visibilityOrGetter;
+
+  const visibility = getVisibility() || {};
+  const fields = ALL_FIELDS.filter((f) => f.cardRole && f.key !== 'nomi');
+
+  panel.innerHTML = `
+    <div class="vis-modal-header">
+      <h2 id="visModalTitle" class="vis-modal-title">Kartada ko‘rinadigan maydonlar</h2>
+      <button type="button" class="vis-modal-close" id="visibilityCloseBtn" aria-label="Yopish">&times;</button>
+    </div>
+    <div class="vis-modal-body">
+      ${fields
+        .map((f) => {
+          const locked = f.lockedVisible;
+          const checked = visibility[f.key] !== false;
+          return `
+          <label class="vis-item${locked ? ' vis-locked' : ''}">
+            <input type="checkbox" data-key="${f.key}" ${checked ? 'checked' : ''} ${locked ? 'disabled' : ''}>
+            <span>${escapeHtml(f.label)}</span>
+          </label>`;
+        })
+        .join('')}
+    </div>
+    <div class="vis-modal-footer">
+      <p class="vis-modal-hint">Faqat kartada. Shtrix/MXIK Excelda har doim chiqadi.</p>
+      <button type="button" class="btn btn-primary" id="visibilityDoneBtn">Tayyor</button>
+    </div>
+  `;
 
   panel.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
     cb.addEventListener('change', () => {
       const key = cb.dataset.key;
-      const next = { ...visibility, [key]: cb.checked };
+      const current = getVisibility() || {};
+      const next = { ...current, [key]: cb.checked };
       ALL_FIELDS.forEach((f) => {
         if (f.lockedVisible) next[f.key] = true;
       });
       onChange?.(next);
     });
   });
+
+  panel.querySelector('#visibilityCloseBtn')?.addEventListener('click', () => setVisibilityPanelOpen(false));
+  panel.querySelector('#visibilityDoneBtn')?.addEventListener('click', () => setVisibilityPanelOpen(false));
+}
+
+export function setVisibilityPanelOpen(open) {
+  const overlay = document.getElementById('visibilityOverlay');
+  const panel = document.getElementById('visibilityPanel');
+  const btn = document.getElementById('visibilityToggleBtn');
+  if (!overlay) return;
+
+  overlay.hidden = !open;
+  document.body.classList.toggle('vis-modal-open', open);
+  if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+
+  if (open) {
+    requestAnimationFrame(() => {
+      panel?.querySelector('#visibilityCloseBtn')?.focus({ preventScroll: true });
+    });
+  } else {
+    btn?.focus({ preventScroll: true });
+  }
 }
 
 export function bindToolbar({
@@ -58,19 +102,31 @@ export function bindToolbar({
   document.getElementById('exportBtn')?.addEventListener('click', () => onExport?.());
   document.getElementById('newFileBtn')?.addEventListener('click', () => onNewFile?.());
 
-  document.getElementById('visibilityToggleBtn')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const panel = document.getElementById('visibilityPanel');
-    if (!panel) return;
-    panel.hidden = !panel.hidden;
-    onToggleVisibility?.(panel.hidden);
+  const toggleBtn = document.getElementById('visibilityToggleBtn');
+  if (toggleBtn) {
+    toggleBtn.setAttribute('aria-expanded', 'false');
+    toggleBtn.setAttribute('aria-controls', 'visibilityOverlay');
+    toggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const overlay = document.getElementById('visibilityOverlay');
+      if (!overlay) return;
+      const open = overlay.hidden;
+      setVisibilityPanelOpen(open);
+      onToggleVisibility?.(open);
+    });
+  }
+
+  document.getElementById('visibilityOverlay')?.addEventListener('click', (e) => {
+    if (e.target.id === 'visibilityOverlay') setVisibilityPanelOpen(false);
   });
 
-  document.addEventListener('click', (e) => {
-    const wrap = document.querySelector('.visibility-wrap');
-    const panel = document.getElementById('visibilityPanel');
-    if (!wrap || !panel || panel.hidden) return;
-    if (!wrap.contains(e.target)) panel.hidden = true;
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    const overlay = document.getElementById('visibilityOverlay');
+    if (overlay && !overlay.hidden) {
+      setVisibilityPanelOpen(false);
+      onToggleVisibility?.(false);
+    }
   });
 
   document.querySelectorAll('input[name="exportMode"]').forEach((radio) => {

@@ -617,35 +617,129 @@ body {
   position: relative;
 }
 
-.visibility-panel {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 20;
-  min-width: 220px;
-  max-height: 280px;
-  overflow-y: auto;
-  padding: 0.75rem;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-card);
+/* Maydonlar — true modal (hidden must beat display:flex) */
+.vis-overlay[hidden],
+.vis-overlay[hidden] .vis-modal {
+  display: none !important;
+}
+
+.vis-overlay:not([hidden]) {
+  display: flex;
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.45);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+
+body.vis-modal-open {
+  overflow: hidden;
+}
+
+.vis-modal {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  width: 100%;
+  max-width: 380px;
+  max-height: min(520px, calc(100vh - 2rem));
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
+  outline: none;
+}
+
+.vis-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.vis-modal-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.vis-modal-close {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: var(--bg-input);
+  color: var(--text-muted);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.vis-modal-close:hover {
+  background: #e2e8f0;
+  color: var(--text);
+}
+
+.vis-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.vis-modal-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.75rem 1rem 1rem;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.vis-modal-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.vis-modal-footer .btn {
+  width: 100%;
 }
 
 .vis-item {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   cursor: pointer;
+  padding: 0.45rem 0.35rem;
+  border-radius: 6px;
+}
+
+.vis-item:hover:not(.vis-locked) {
+  background: var(--bg-input);
 }
 
 .vis-item.vis-locked {
   opacity: 0.7;
   cursor: default;
+}
+
+/* legacy class unused — keep hidden safe if present */
+.visibility-panel[hidden] {
+  display: none !important;
 }
 
 .export-mode {

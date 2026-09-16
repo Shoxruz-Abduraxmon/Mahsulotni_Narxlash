@@ -71,11 +71,8 @@
     </div>
     <div class="toolbar-actions">
       <span class="progress-text" id="progressText">0 / 0</span>
-      <div class="visibility-wrap">
-        <button type="button" id="visibilityToggleBtn" class="btn btn-secondary">Maydonlar</button>
-        <div id="visibilityPanel" class="visibility-panel" hidden></div>
-      </div>
-      <div class="export-mode">
+      <button type="button" id="visibilityToggleBtn" class="btn btn-secondary" aria-expanded="false" aria-haspopup="dialog" aria-controls="visibilityOverlay">Maydonlar</button>
+      <div class="export-mode" title="Shtrix va MXIK har doim Excelda chiqadi">
         <label><input type="radio" name="exportMode" value="visible" checked> Ko'rinish</label>
         <label><input type="radio" name="exportMode" value="full"> To'liq</label>
       </div>
@@ -86,4 +83,8 @@
   </div>
 
   <div class="product-cards-grid" id="pricingBody"></div>
+
+  <div id="visibilityOverlay" class="vis-overlay" hidden>
+    <div id="visibilityPanel" class="vis-modal" role="dialog" aria-modal="true" aria-labelledby="visModalTitle" tabindex="-1"></div>
+  </div>
 </div>
